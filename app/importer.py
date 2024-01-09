@@ -1,11 +1,13 @@
 import os
+import time
 from datetime import datetime, timedelta
+from typing import List
 
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
 
 from text_process import PreProcess
-from worker import app
+from worker import app, get_running_tasks, terminate_task
 
 load_dotenv()
 source_host = os.getenv("source_host", '127.0.0.1')
@@ -24,7 +26,7 @@ dest_user_index = os.getenv("dest_user_index", '')
 # Source Elasticsearch configuration
 # cert = 'http_ca.crt'
 es = Elasticsearch(f"https://{source_host}:{source_port}", basic_auth=(source_username,
-                   source_password), timeout=50, retry_on_timeout=True, verify_certs=False)
+                                                                       source_password), timeout=50, retry_on_timeout=True, verify_certs=False)
 
 # Dest Elasticsearch configuration
 # cert = 'http_ca.crt'
@@ -174,3 +176,83 @@ def main(from_date: str):
         except Exception as error:
             print(str(error))
     return
+
+
+def god_mode(which_to_keep: int):
+    """
+    Args:
+        which_to_keep (int): -1: keep the first task, 1: keep the last task
+    """
+    def god_mode_decorator(func):
+        def wrapper(*args, **kwargs):
+            running_tasks = get_running_tasks()
+            cur_task_ids = {}
+            for i in running_tasks:
+                if func.__name__ in i.get("name"):
+                    cur_task_ids.update({i.get("id"): i.get("time_start")})
+            cur_task_ids = [i[0] for i in sorted(cur_task_ids.items(),
+                                                 key=lambda x: x[1], reverse=True)]
+            if len(cur_task_ids) > 1:
+                if which_to_keep == -1:
+                    cti = cur_task_ids[:-1]
+                elif which_to_keep == 1:
+                    cti = cur_task_ids[1:]
+                print(cti)
+                for i in cti:
+                    terminate_task(i)
+            func(*args, **kwargs)
+            # print(get_running_tasks())
+        wrapper.__name__ = func.__name__
+        return wrapper
+    return god_mode_decorator
+
+
+@app.task(queue='importer')
+@god_mode(which_to_keep=-1)
+def auto_task_runner(interval: int, conditions: List[str], _callable: str):
+    """
+    Run a task automatically at a specified interval based on given conditions.
+
+    Args:
+        interval (int): The interval, in seconds, at which the task should run.
+        conditions (List[str]): The list of (bool)conditions that need to be met for the task to run.
+        _callable (str (name of a callable)): The function to be executed as the task.
+
+    Returns:
+        None
+
+    Raises:
+        None
+
+    Notes:
+        - The task will keep running indefinitely until interrupted.
+        - The task will only be executed if all conditions are met.
+        - The conditions are evaluated using the `eval` function.
+        - The task will sleep for the specified interval between each execution.
+    Example:\n`auto_task_runner(60, ["len(get_running_tasks()) == 1", "40 <= datetime.utcnow().minute <= 52"], "cherry_pick")`
+    """
+    time.sleep(5)
+    _callable = eval(_callable)
+    while True:
+        if all([eval(condition) for condition in conditions]):
+            _callable()
+        time.sleep(interval)
+
+
+def cherry_pick():
+    f = open('missed', 'r+')
+    lines = f.readlines()
+    missed: List[datetime] = []
+    for line in lines:
+        try:
+            dt = datetime.fromisoformat(line.strip())
+            print(dt)
+            missed.append(dt)
+        except:
+            pass
+    f.seek(0)
+    f.truncate()
+    f.write("# yyyy-MM-dd HH:mm:ss\n")
+    f.writelines(m.isoformat() + '\n' for m in missed[1:])
+    f.close()
+    main.delay(from_date=missed[0].isoformat())
