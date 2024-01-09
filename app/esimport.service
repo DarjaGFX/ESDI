@@ -1,0 +1,13 @@
+[Unit]
+Description=Elastic Search Data Importer Service
+After=network.target
+
+[Service]
+ExecStart=/opt/elastic_data_importer/venv/bin/python /opt/elastic_data_importer/app/main.py
+WorkingDirectory=/opt/elastic_data_importer/app/
+User=root
+Group=root
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
