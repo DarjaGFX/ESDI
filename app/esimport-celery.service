@@ -3,7 +3,7 @@ Description=Elastic Search Data Importer Celery Service
 After=network.target
 
 [Service]
-ExecStart=/opt/elastic_data_importer/venv/bin/celery -A worker worker -l info -E
+ExecStart=/opt/elastic_data_importer/venv/bin/celery -A worker worker -l info -E -Q Importer
 WorkingDirectory=/opt/elastic_data_importer/app/
 User=root
 Group=root

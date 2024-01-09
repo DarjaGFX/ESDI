@@ -5,6 +5,7 @@ from importer import main
 
 ####################################
 while True:
+    # TODO: Check if utc should be used
     now = datetime.utcnow()
     if now.minute < 15:
         delay = 15-now.minute
