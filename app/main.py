@@ -15,7 +15,7 @@ auto_task_runner.delay(
         "len(get_running_tasks()) == 1",
         "15 < datetime.utcnow().minute < 50"
     ],
-    executable="cherry_pick"
+    _callable="cherry_pick"
 )
 
 while True:
