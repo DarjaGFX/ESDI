@@ -116,6 +116,7 @@ def save_tweets(tweets):
                 "reply_count": tweets.body['hits']['hits'][i]['_source']['legacy']['reply_count'],
                 "retweet_count": tweets.body['hits']['hits'][i]['_source']['legacy']['retweet_count'],
                 "id_str": tweets.body['hits']['hits'][i]['_source']['legacy']['id_str'],
+                "id_int": int(tweets.body['hits']['hits'][i]['_source']['legacy']['id_str']),
                 "user_id_str": tweets.body['hits']['hits'][i]['_source']['legacy']['user_id_str'],
                 "category": tweets.body['hits']['hits'][i]['_source']['category'],
                 "hashtag_list": tweets.body['hits']['hits'][i]['_source']['hashtag_list'],
