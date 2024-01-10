@@ -5,7 +5,8 @@ from typing import List
 
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
-
+from postgresqldb import db
+from sqlalchemy.sql import text
 from text_process import PreProcess
 from worker import app, get_running_tasks, terminate_task
 
@@ -102,7 +103,7 @@ def save_tweets(tweets):
     for i in range(tweets_count):
         try:
             txt = tweets.body['hits']['hits'][i]['_source']['legacy']['full_text']
-            id = tweets.body['hits']['hits'][i]['_source']['legacy']['id_str']
+            tweet_id = tweets.body['hits']['hits'][i]['_source']['legacy']['id_str']
             try:
                 user_url = tweets.body['hits']['hits'][i]['_source']['core']['user_results']['result']['legacy']['url']
             except Exception as error:
@@ -136,6 +137,9 @@ def save_tweets(tweets):
                 "url": user_url,
                 "profile_image_url_https": tweets.body['hits']['hits'][i]['_source']['core']['user_results']['result']['legacy']['profile_image_url_https']
             }
+            db.execute(text(
+                f"CALL public.save_hashtag({tweet['created_at_dt']}, {tweet['hashtag_list']}, {tweet_id}"))
+            db.commit()
             save_tweet(tweet)
             save_user(user_info)
         except Exception as error:
@@ -252,6 +256,8 @@ def cherry_pick():
             pass
     f.seek(0)
     f.truncate()
+    # TODO: minutes and seconds should be 0!
+    # this would import data from given time to next hour no matter it starts at minute 0 or not!
     f.write("# yyyy-MM-dd HH:mm:ss\n")
     f.writelines(m.isoformat() + '\n' for m in missed[1:])
     f.close()
