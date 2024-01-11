@@ -139,8 +139,10 @@ def save_tweets(tweets):
                 "profile_image_url_https": tweets.body['hits']['hits'][i]['_source']['core']['user_results']['result']['legacy']['profile_image_url_https']
             }
             if len(tweet['hashtag_list']) > 0:
+                tweet_dt = datetime.fromisoformat(datetime.fromisoformat(
+                    tweet['created_at_dt']).date().isoformat()).isoformat()
                 db.execute(text(
-                    f"CALL public.save_hashtag('{tweet['created_at_dt']}', ARRAY{tweet['hashtag_list']}, {tweet_id})"))
+                    f"CALL public.save_hashtag('{tweet_dt}', ARRAY{tweet['hashtag_list']}, {tweet_id})"))
             db.commit()
             save_tweet(tweet)
             save_user(user_info)
