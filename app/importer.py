@@ -110,25 +110,30 @@ def save_tweets(tweets):
                 user_url = ""
                 pass
             try:
-                user_image_url = result.body['hits']['hits'][i]['_source']['core']['user_results']['result']['legacy']['profile_image_url_https']
+                user_image_url = result.body['hits']['hits'][i]['_source']['core'][
+                    'user_results']['result']['legacy']['profile_image_url_https']
             except:
-                user_image_url= ""
+                user_image_url = ""
             try:
-                user_profile_banner_url = result.body['hits']['hits'][i]['_source']['core']['user_results']['result']['legacy']['profile_banner_url']
+                user_profile_banner_url = result.body['hits']['hits'][i]['_source'][
+                    'core']['user_results']['result']['legacy']['profile_banner_url']
             except:
-                user_profile_banner_url= ""                        
+                user_profile_banner_url = ""
             try:
-                user_normal_followers_count = result.body['hits']['hits'][i]['_source']['core']['user_results']['result']['legacy']['normal_followers_count']
+                user_normal_followers_count = result.body['hits']['hits'][i]['_source'][
+                    'core']['user_results']['result']['legacy']['normal_followers_count']
             except:
-                user_normal_followers_count= ""
+                user_normal_followers_count = ""
             try:
-                user_media_count = result.body['hits']['hits'][i]['_source']['core']['user_results']['result']['legacy']['media_count']
+                user_media_count = result.body['hits']['hits'][i]['_source'][
+                    'core']['user_results']['result']['legacy']['media_count']
             except:
-                user_media_count= ""
+                user_media_count = ""
             try:
-                user_friends_count = result.body['hits']['hits'][i]['_source']['core']['user_results']['result']['legacy']['friends_count']
+                user_friends_count = result.body['hits']['hits'][i]['_source'][
+                    'core']['user_results']['result']['legacy']['friends_count']
             except:
-                user_friends_count= ""
+                user_friends_count = ""
             user_info = {
                 "user_id_str": tweets.body['hits']['hits'][i]['_source']['legacy']['user_id_str'],
                 "user_screen_name": tweets.body['hits']['hits'][i]['_source']['core']['user_results']['result']['legacy']['screen_name'],
@@ -141,13 +146,15 @@ def save_tweets(tweets):
                 "statuses_count": tweets.body['hits']['hits'][i]['_source']['core']['user_results']['result']['legacy']['statuses_count'],
                 "created_at": tweets.body['hits']['hits'][i]['_source']['core']['user_results']['result']['legacy']['created_at'],
                 "url": user_url,
-                "user_image_url" : user_image_url,
+                "user_image_url": user_image_url,
                 "user_friends_count": user_friends_count,
                 "user_media_count": user_media_count,
                 "user_normal_followers_count": user_normal_followers_count,
                 "user_profile_banner_url": user_profile_banner_url,
                 "profile_image_url_https": tweets.body['hits']['hits'][i]['_source']['core']['user_results']['result']['legacy']['profile_image_url_https']
             }
+            hashtag_list = [PreProcess._Normal(
+                text=i) for i in tweets.body['hits']['hits'][i]['_source']['hashtag_list']]
             tweet = {
                 "tweet_text": txt,
                 "cleaned_text": PreProcess(txt).deEmojify().Rpunc().Rnf().GetNouns().RS().text.replace('_', ' '),
@@ -159,7 +166,7 @@ def save_tweets(tweets):
                 "id_int": int(tweets.body['hits']['hits'][i]['_source']['legacy']['id_str']),
                 "user_id_str": tweets.body['hits']['hits'][i]['_source']['legacy']['user_id_str'],
                 "category": tweets.body['hits']['hits'][i]['_source']['category'],
-                "hashtag_list": tweets.body['hits']['hits'][i]['_source']['hashtag_list'],
+                "hashtag_list": hashtag_list,
                 "created_at_dt": tweets.body['hits']['hits'][i]['_source']['created_at_dt'],
                 "user_screen_name": tweets.body['hits']['hits'][i]['_source']['core']['user_results']['result']['legacy']['screen_name'],
                 "user_info": user_info
@@ -168,7 +175,7 @@ def save_tweets(tweets):
                 tweet_dt = datetime.fromisoformat(datetime.fromisoformat(
                     tweet['created_at_dt']).date().isoformat()).isoformat()
                 db.execute(text(
-                    f"CALL public.save_hashtag('{tweet_dt}', ARRAY{[PreProcess._Normal(i) for i in tweet['hashtag_list']]}, {tweet_id})"))
+                    f"CALL public.save_hashtag('{tweet_dt}', ARRAY{hashtag_list}, {tweet_id})"))
             db.commit()
             save_tweet(tweet)
             save_user(user_info)
