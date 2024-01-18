@@ -121,6 +121,11 @@ def save_tweets(tweets):
                 "statuses_count": tweets.body['hits']['hits'][i]['_source']['core']['user_results']['result']['legacy']['statuses_count'],
                 "created_at": tweets.body['hits']['hits'][i]['_source']['core']['user_results']['result']['legacy']['created_at'],
                 "url": user_url,
+                "user_image_url" : "",
+                "user_friends_count": 0,
+                "user_media_count": 0,
+                "user_normal_followers_count": 0,
+                "user_profile_banner_url": "",
                 "profile_image_url_https": tweets.body['hits']['hits'][i]['_source']['core']['user_results']['result']['legacy']['profile_image_url_https']
             }
             tweet = {
