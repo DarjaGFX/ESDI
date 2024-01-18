@@ -109,21 +109,6 @@ def save_tweets(tweets):
             except Exception as error:
                 user_url = ""
                 pass
-            tweet = {
-                "tweet_text": txt,
-                "cleaned_text": PreProcess(txt).deEmojify().Rpunc().Rnf().GetNouns().RS().text.replace('_', ' '),
-                "lang": tweets.body['hits']['hits'][i]['_source']['legacy']['lang'],
-                "quote_count": tweets.body['hits']['hits'][i]['_source']['legacy']['quote_count'],
-                "reply_count": tweets.body['hits']['hits'][i]['_source']['legacy']['reply_count'],
-                "retweet_count": tweets.body['hits']['hits'][i]['_source']['legacy']['retweet_count'],
-                "id_str": tweets.body['hits']['hits'][i]['_source']['legacy']['id_str'],
-                "id_int": int(tweets.body['hits']['hits'][i]['_source']['legacy']['id_str']),
-                "user_id_str": tweets.body['hits']['hits'][i]['_source']['legacy']['user_id_str'],
-                "category": tweets.body['hits']['hits'][i]['_source']['category'],
-                "hashtag_list": tweets.body['hits']['hits'][i]['_source']['hashtag_list'],
-                "created_at_dt": tweets.body['hits']['hits'][i]['_source']['created_at_dt'],
-                "user_screen_name": tweets.body['hits']['hits'][i]['_source']['core']['user_results']['result']['legacy']['screen_name']
-            }
             user_info = {
                 "user_id_str": tweets.body['hits']['hits'][i]['_source']['legacy']['user_id_str'],
                 "user_screen_name": tweets.body['hits']['hits'][i]['_source']['core']['user_results']['result']['legacy']['screen_name'],
@@ -138,11 +123,27 @@ def save_tweets(tweets):
                 "url": user_url,
                 "profile_image_url_https": tweets.body['hits']['hits'][i]['_source']['core']['user_results']['result']['legacy']['profile_image_url_https']
             }
+            tweet = {
+                "tweet_text": txt,
+                "cleaned_text": PreProcess(txt).deEmojify().Rpunc().Rnf().GetNouns().RS().text.replace('_', ' '),
+                "lang": tweets.body['hits']['hits'][i]['_source']['legacy']['lang'],
+                "quote_count": tweets.body['hits']['hits'][i]['_source']['legacy']['quote_count'],
+                "reply_count": tweets.body['hits']['hits'][i]['_source']['legacy']['reply_count'],
+                "retweet_count": tweets.body['hits']['hits'][i]['_source']['legacy']['retweet_count'],
+                "id_str": tweets.body['hits']['hits'][i]['_source']['legacy']['id_str'],
+                "id_int": int(tweets.body['hits']['hits'][i]['_source']['legacy']['id_str']),
+                "user_id_str": tweets.body['hits']['hits'][i]['_source']['legacy']['user_id_str'],
+                "category": tweets.body['hits']['hits'][i]['_source']['category'],
+                "hashtag_list": tweets.body['hits']['hits'][i]['_source']['hashtag_list'],
+                "created_at_dt": tweets.body['hits']['hits'][i]['_source']['created_at_dt'],
+                "user_screen_name": tweets.body['hits']['hits'][i]['_source']['core']['user_results']['result']['legacy']['screen_name'],
+                "user_info": user_info
+            }
             if len(tweet['hashtag_list']) > 0:
                 tweet_dt = datetime.fromisoformat(datetime.fromisoformat(
                     tweet['created_at_dt']).date().isoformat()).isoformat()
                 db.execute(text(
-                    f"CALL public.save_hashtag('{tweet_dt}', ARRAY{tweet['hashtag_list']}, {tweet_id})"))
+                    f"CALL public.save_hashtag('{tweet_dt}', ARRAY{[PreProcess._Normal(i) for i in tweet['hashtag_list']]}, {tweet_id})"))
             db.commit()
             save_tweet(tweet)
             save_user(user_info)
