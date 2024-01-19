@@ -35,6 +35,6 @@ while True:
             microseconds=-now.microsecond
         )
         print(f"start importing data from {start}")
-        main.delay(start.isoformat())
+        main.delay(start.isoformat(), delta_minutes=59)
         print(f"loop sleeping for 1 hour!")
         time.sleep(3600)

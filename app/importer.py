@@ -1,7 +1,7 @@
 import os
 import time
-from datetime import datetime, timedelta
-from typing import List
+from datetime import date, datetime, timedelta
+from typing import List, Union
 
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
@@ -200,9 +200,9 @@ def minimporter(start: str, end: str):
 
 
 @app.task(queue='importer')
-def main(from_date: str):
+def main(from_date: str, delta_minutes: int = 59):  # type: ignore
     from_date: datetime = datetime.fromisoformat(from_date)
-    to_date: datetime = from_date + timedelta(minutes=59)
+    to_date: datetime = from_date + timedelta(minutes=delta_minutes)
     # start = "2024-01-05T11:00:00.000Z"
     time_delta_min = 1
     # start = datetime.strptime(start, "%Y-%m-%dT%H:%M:%S.%fZ")
@@ -280,22 +280,65 @@ def auto_task_runner(interval: int, conditions: List[str], _callable: str):
         time.sleep(interval)
 
 
+def datetimewalker(start: Union[date, datetime], end: Union[date, datetime], delta: timedelta):
+    """
+    Generates a sequence of datetime objects between a start and end date or datetime object, with a given timedelta interval.
+
+    Args:
+        start (Union[date, datetime]): The starting date or datetime object.
+        end (Union[date, datetime]): The ending date or datetime object.
+        delta (timedelta): The timedelta interval between each generated datetime object.
+
+    Yields:
+        datetime: A datetime object between the start and end dates, incremented by the specified timedelta interval.
+
+    Raises:
+        ValueError: If the start and end parameters are not of the same type, or if the delta is less than one day.
+
+    """
+    if type(start) != type(end) or delta < timedelta(days=1):
+        start = datetime.fromisoformat(start.isoformat())
+        end = datetime.fromisoformat(end.isoformat())
+
+    if start > end:  # type: ignore
+        if delta > timedelta():
+            raise ValueError(
+                f"for backward walking timedelta must be negative")
+        else:
+            while start >= end:
+                yield start
+                start += delta
+    else:
+        if delta < timedelta():
+            raise ValueError(
+                f"for forkward walking timedelta must be positive")
+        else:
+            while start <= end:
+                yield start
+                start += delta
+
+
 def cherry_pick():
     f = open('missed', 'r+')
     lines = f.readlines()
     missed: List[datetime] = []
     for line in lines:
-        try:
-            dt = datetime.fromisoformat(line.strip())
-            print(dt)
-            missed.append(dt)
-        except:
-            pass
+        if '|' in line:
+            start = datetime.fromisoformat(line.split('|')[0].strip())
+            end = datetime.fromisoformat(line.split('|')[1].strip())
+            for dt in datetimewalker(start, end, timedelta(hours=1)):
+                # TODO: handle periods of time less that an hour
+                missed.append(dt)  # type: ignore
+        else:
+            try:
+                dt = datetime.fromisoformat(line.strip())
+                print(dt)
+                missed.append(dt)
+            except:
+                pass
     f.seek(0)
     f.truncate()
-    # TODO: minutes and seconds should be 0!
-    # this would import data from given time to next hour no matter it starts at minute 0 or not!
-    f.write("# yyyy-MM-dd HH:mm:ss\n")
+    f.write("# for a specific time: yyyy-MM-dd HH:mm:ss   or for a period of time use : isoformat | isoformat          Ex. 2020-01-01 06:00:00 | 2020-01-01 18:00:00 or 2020-03-01|2020-03-03 04:00:00\n")
     f.writelines(m.isoformat() + '\n' for m in missed[1:])
     f.close()
-    main.delay(from_date=missed[0].isoformat())
+    main.delay(from_date=missed[0].isoformat(), delta_minutes=59)
