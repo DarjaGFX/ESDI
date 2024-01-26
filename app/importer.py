@@ -322,7 +322,7 @@ def cherry_pick():
     f = open('missed', 'r+')
     lines = f.readlines()
     missed: List[datetime] = []
-    for line in lines:
+    for line in lines[1:]:
         if '|' in line:
             start = datetime.fromisoformat(line.split('|')[0].strip())
             end = datetime.fromisoformat(line.split('|')[1].strip())
