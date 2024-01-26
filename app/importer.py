@@ -171,6 +171,9 @@ def save_tweets(tweets):
                 "user_screen_name": tweets.body['hits']['hits'][i]['_source']['core']['user_results']['result']['legacy']['screen_name'],
                 "user_info": user_info
             }
+            tweet.update({
+                "clean_length": len(tweet['cleaned_text'].split()),
+            })
             if len(tweet['hashtag_list']) > 0:
                 tweet_dt = datetime.fromisoformat(datetime.fromisoformat(
                     tweet['created_at_dt']).date().isoformat()).isoformat()
