@@ -63,13 +63,13 @@ def save_tweet(tweet):
     try:
         # Index the document into Elasticsearch
         # print(document)
-        try:
-            # print("delete")
-            d = es_dest.delete(index=dest_tweet_index, id=tweet['id_str'])
-            # print("delete")
-            # print(f"{d=}")
-        except Exception as error:
-            pass
+        # try:
+        #     # print("delete")
+        #     d = es_dest.delete(index=dest_tweet_index, id=tweet['id_str'])
+        #     # print("delete")
+        #     # print(f"{d=}")
+        # except Exception as error:
+        #     pass
 
         ind = es_dest.index(
             index=dest_tweet_index, id=tweet['id_str'], document=tweet)
@@ -155,6 +155,11 @@ def save_tweets(tweets):
             }
             hashtag_list = [PreProcess._Normal(
                 text=i) for i in tweets.body['hits']['hits'][i]['_source']['hashtag_list']]
+            cat = ""
+            try:
+                cat = tweets.body['hits']['hits'][i]['_source']['category']
+            except:
+                pass
             tweet = {
                 "tweet_text": txt,
                 "cleaned_text": PreProcess(txt).deEmojify().Rpunc().Rnf().GetNouns().RS().text.replace('_', ' '),
@@ -165,7 +170,7 @@ def save_tweets(tweets):
                 "id_str": tweets.body['hits']['hits'][i]['_source']['legacy']['id_str'],
                 "id_int": int(tweets.body['hits']['hits'][i]['_source']['legacy']['id_str']),
                 "user_id_str": tweets.body['hits']['hits'][i]['_source']['legacy']['user_id_str'],
-                "category": tweets.body['hits']['hits'][i]['_source']['category'],
+                "category": cat,
                 "hashtag_list": hashtag_list,
                 "created_at_dt": tweets.body['hits']['hits'][i]['_source']['created_at_dt'],
                 "user_screen_name": tweets.body['hits']['hits'][i]['_source']['core']['user_results']['result']['legacy']['screen_name'],
@@ -178,10 +183,10 @@ def save_tweets(tweets):
                 tweet_dt = datetime.fromisoformat(datetime.fromisoformat(
                     tweet['created_at_dt']).date().isoformat()).isoformat()
                 db.execute(text(
-                    f"CALL public.save_hashtag('{tweet_dt}', ARRAY{hashtag_list}, {tweet_id})"))
+                    f"CALL public.save_hashtag('{tweet_dt}', '{tweet['created_at_dt']}', {int(user_info["user_id_str"])}, JSON{user_info}, {tweet['tweet_text']}, ARRAY{hashtag_list}, {tweet_id})"))
             db.commit()
             save_tweet(tweet)
-            save_user(user_info)
+            # save_user(user_info)
         except Exception as error:
             print(f"save_tweets: {error}")
 
