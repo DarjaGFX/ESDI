@@ -1,3 +1,4 @@
+import json
 import os
 import time
 from datetime import date, datetime, timedelta
@@ -7,6 +8,7 @@ from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
 from postgresqldb import db
 from sqlalchemy.sql import text
+from sqlalchemy import ARRAY, JSON, TIMESTAMP, BIGINT, VARCHAR, bindparam
 from text_process import PreProcess
 from worker import app, get_running_tasks, terminate_task
 
@@ -110,27 +112,27 @@ def save_tweets(tweets):
                 user_url = ""
                 pass
             try:
-                user_image_url = result.body['hits']['hits'][i]['_source']['core'][
+                user_image_url = tweets.body['hits']['hits'][i]['_source']['core'][
                     'user_results']['result']['legacy']['profile_image_url_https']
             except:
                 user_image_url = ""
             try:
-                user_profile_banner_url = result.body['hits']['hits'][i]['_source'][
+                user_profile_banner_url = tweets.body['hits']['hits'][i]['_source'][
                     'core']['user_results']['result']['legacy']['profile_banner_url']
             except:
                 user_profile_banner_url = ""
             try:
-                user_normal_followers_count = result.body['hits']['hits'][i]['_source'][
+                user_normal_followers_count = tweets.body['hits']['hits'][i]['_source'][
                     'core']['user_results']['result']['legacy']['normal_followers_count']
             except:
                 user_normal_followers_count = ""
             try:
-                user_media_count = result.body['hits']['hits'][i]['_source'][
+                user_media_count = tweets.body['hits']['hits'][i]['_source'][
                     'core']['user_results']['result']['legacy']['media_count']
             except:
                 user_media_count = ""
             try:
-                user_friends_count = result.body['hits']['hits'][i]['_source'][
+                user_friends_count = tweets.body['hits']['hits'][i]['_source'][
                     'core']['user_results']['result']['legacy']['friends_count']
             except:
                 user_friends_count = ""
@@ -183,7 +185,32 @@ def save_tweets(tweets):
                 tweet_dt = datetime.fromisoformat(datetime.fromisoformat(
                     tweet['created_at_dt']).date().isoformat()).isoformat()
                 db.execute(text(
-                    f"CALL public.save_hashtag('{tweet_dt}', '{tweet['created_at_dt']}', {int(user_info['user_id_str'])}, JSON{user_info}, {tweet['tweet_text']}, ARRAY{hashtag_list}, {tweet_id})"))
+                    f"""CALL public.save_hashtag(
+                        :hashtag_datetime, 
+                        :hashtag_full_datetime, 
+                        :user_id, 
+                        :user_info, 
+                        :tweet_text, 
+                        :hashtag, 
+                        :hashtag_tweet_id
+                        )
+                    """).bindparams(
+                        bindparam(
+                            "hashtag_datetime", value=tweet_dt, type_=TIMESTAMP),
+                        bindparam(
+                            "hashtag_full_datetime", value=tweet['created_at_dt'], type_=TIMESTAMP),
+                        bindparam(
+                            "user_id", value=int(user_info['user_id_str']), type_=BIGINT),
+                        bindparam(
+                            "user_info", value=json.dumps(user_info), type_=JSON),
+                        bindparam(
+                            "tweet_text", value=PreProcess(tweet['tweet_text']).Rpunc().text, type_=VARCHAR),
+                        bindparam(
+                            "hashtag", value=hashtag_list, type_=ARRAY(VARCHAR)),
+                        bindparam(
+                            "hashtag_tweet_id", value=tweet_id, type_=BIGINT),
+                )
+                )
             db.commit()
             save_tweet(tweet)
             # save_user(user_info)
