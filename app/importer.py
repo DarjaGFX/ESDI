@@ -183,7 +183,7 @@ def save_tweets(tweets):
                 tweet_dt = datetime.fromisoformat(datetime.fromisoformat(
                     tweet['created_at_dt']).date().isoformat()).isoformat()
                 db.execute(text(
-                    f"CALL public.save_hashtag('{tweet_dt}', '{tweet['created_at_dt']}', {int(user_info["user_id_str"])}, JSON{user_info}, {tweet['tweet_text']}, ARRAY{hashtag_list}, {tweet_id})"))
+                    f"CALL public.save_hashtag('{tweet_dt}', '{tweet['created_at_dt']}', {int(user_info['user_id_str'])}, JSON{user_info}, {tweet['tweet_text']}, ARRAY{hashtag_list}, {tweet_id})"))
             db.commit()
             save_tweet(tweet)
             # save_user(user_info)
